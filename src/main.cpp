@@ -51,10 +51,10 @@ void serialEvent() {
 void setup() {
   Serial.begin(9600);
   pinMode(PC13, OUTPUT);
-  pinMode(isBlackF, INPUT);
-  pinMode(isBlackB, INPUT);
-  attachInterrupt(digitalPinToInterrupt(isBlackF), blackFront, FALLING);
-  attachInterrupt(digitalPinToInterrupt(isBlackB), blackBack, FALLING);
+  pinMode(isBlackF, INPUT_PULLDOWN);
+  pinMode(isBlackB, INPUT_PULLDOWN);
+  attachInterrupt(digitalPinToInterrupt(isBlackF), blackFront, RISING);
+  attachInterrupt(digitalPinToInterrupt(isBlackB), blackBack, RISING);
 }
 
 void loop() {
