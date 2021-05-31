@@ -2,5 +2,22 @@
     "files.associations": {
         "*.html": "html",
         "random": "c"
-    }
+    },
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#6f83c6",
+        "activityBar.activeBorder": "#e4bac4",
+        "activityBar.background": "#6f83c6",
+        "activityBar.foreground": "#15202b",
+        "activityBar.inactiveForeground": "#15202b99",
+        "activityBarBadge.background": "#e4bac4",
+        "activityBarBadge.foreground": "#15202b",
+        "statusBar.background": "#4a63b8",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#6f83c6",
+        "titleBar.activeBackground": "#4a63b8",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#4a63b899",
+        "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.color": "#4a63b8"
 }

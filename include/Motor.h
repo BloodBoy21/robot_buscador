@@ -32,6 +32,20 @@ struct Car {
     wheelA->go();
     delay(time);
     wheelA->stop();
+    delay(100);
+    back();
+  }
+  void aroundTheWorld() {
+    wheelA->go();
+    wheelB->back();
+  }
+  void right() {
+    wheelB->stop();
+    wheelA->go();
+  }
+  void left() {
+    wheelA->stop();
+    wheelB->go();
   }
 };
 #endif
