@@ -75,13 +75,13 @@ void setup() {
 void loop() {
   if (status) {
     int bottle = distance();
-    if (bottle <= 40) {
+    if (bottle <= 50) {
       Serial.print("Loop\nBotella detectada a ");
       Serial.print(bottle);
       Serial.println("cm");
       timer = millis();
       bottleFind = true;
-    } else if (bottle > 40 && !bottleFind) {
+    } else if (bottle > 50 && !bottleFind) {
       lilFord.aroundTheWorld();
       if (millis() - resetSide >= 10000) {
         lilFord.stop();
@@ -129,9 +129,7 @@ void flip(bool side) {
     }
     for (int i = 0; i < 2; i++) {
       int bottle = distance();
-      lilFord.spin(300); // Gira por 300ms
-      lilFord.stop();
-      if (bottle <= 40) {
+      if (bottle <= 50) {
         bottleFind = true;
         Serial.print("INT0\nBotella detectada a ");
         Serial.print(bottle);
@@ -139,6 +137,8 @@ void flip(bool side) {
         lilFord.go();
         i = 2;
       }
+      lilFord.spin(300); // Gira por 300ms
+      lilFord.stop();
     }
   }
 }
