@@ -25,6 +25,7 @@ void blackBack();
 void flip(bool side);
 int distance();
 void startSteps(bool side);
+void debugDistance();
 
 void serialEvent() {
   if (Serial.available() > 0) {
@@ -52,10 +53,14 @@ void serialEvent() {
     }
   }
 }
-
+void debugDistance() {
+  int mamada = distance();
+  Serial.println(mamada);
+  delay(1000);
+}
 int distance() {
   digitalWrite(trigger, LOW);
-  delayMicroseconds(2);
+  delayMicroseconds(5);
   digitalWrite(trigger, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigger, LOW);
@@ -71,8 +76,8 @@ void setup() {
   pinMode(echo, INPUT);
   pinMode(isBlackF, INPUT);
   pinMode(isBlackB, INPUT);
-  attachInterrupt(digitalPinToInterrupt(isBlackF), blackFront, HIGH);
-  attachInterrupt(digitalPinToInterrupt(isBlackB), blackBack, HIGH);
+  attachInterrupt(digitalPinToInterrupt(isBlackF), blackFront, RISING);
+  attachInterrupt(digitalPinToInterrupt(isBlackB), blackBack, RISING);
 }
 
 void loop() {
@@ -84,10 +89,12 @@ void loop() {
       Serial.println("cm");
       timer = millis();
       bottleFind = true;
+      lilFord.go();
     } else if (bottle > maxDistance && !bottleFind) {
       lilFord.aroundTheWorld();
+      delay(50);
       if (millis() - resetSide >= 10000) {
-        Serial.println("Hay que seguiras");
+        Serial.println("Hay que seguir");
         lilFord.stop();
         lilFord.go();
         delay(200);
@@ -97,15 +104,29 @@ void loop() {
     while (bottleFind) {
       lilFord.go();
       if ((millis() - timer >= 5000) && distance() > maxDistance) {
-        Serial.print("Falsa alarma");
+        Serial.println("Falsa alarma");
         timer = millis();
         bottleFind = false;
       }
     }
+  } else {
+    debugDistance();
   }
 }
-void blackFront() { flip(true); }
-void blackBack() { flip(false); }
+void blackFront() {
+  if (status) {
+    lilFord.back();
+    delay(100);
+    flip(true);
+  }
+}
+void blackBack() {
+  if (status) {
+    lilFord.go();
+    delay(100);
+    flip(false);
+  }
+}
 
 void startSteps(bool side) {
   int bottle = distance();
@@ -125,21 +146,29 @@ void startSteps(bool side) {
     lilFord.aroundTheWorld();
   }
 }
-
+/*
+ *@param bool side: Determinar que sensor fue activado
+ *
+ */
 void flip(bool side) {
   if (status) {
     if (side) { // Linea negra de frente
       Serial.println("Linea enfrente");
       lilFord.back();
-      delay(300);
+      delay(200);
     } else {
       Serial.println("Linea detras");
       lilFord.go();
-      delay(100);
+      delay(80);
       lilFord.aroundTheWorld();
-      delay(100);
+      delay(90);
     }
-    for (int i = 0; i < 2; i++) {
+    if (bottleFind) {
+      bottleFind = false;
+      lilFord.spin(200);
+      lilFord.go();
+    }
+    for (int i = 0; i < 2; i++) { //! Seguir estudiando el tiempo de giro
       int bottle = distance();
       if (bottle <= maxDistance) {
         bottleFind = true;
@@ -150,7 +179,7 @@ void flip(bool side) {
         i = 2;
       } else {
         Serial.println("INT0\nGirando");
-        lilFord.spin(300); // Gira por 300ms
+        lilFord.spin(180); // Gira por 300ms
         lilFord.stop();
       }
     }
