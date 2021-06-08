@@ -1,6 +1,7 @@
 #ifndef __MOTOR
 #define __MOTOR
 #include <Arduino.h>
+
 class Motor {
  private:
   int a, b;
@@ -32,20 +33,20 @@ struct Car {
     wheelA->go();
     delay(time);
     wheelA->stop();
-    delay(100);
     back();
   }
-  void aroundTheWorld() {
+  void aroundTheWorld(int time) {
     wheelA->go();
     wheelB->back();
+    delay(time);
   }
   void right() {
-    wheelB->stop();
-    wheelA->go();
-  }
-  void left() {
     wheelA->stop();
     wheelB->go();
+  }
+  void left() {
+    wheelB->stop();
+    wheelA->go();
   }
 };
 #endif

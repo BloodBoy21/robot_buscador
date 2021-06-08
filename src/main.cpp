@@ -13,19 +13,20 @@ int isBlackB = PB12;
 int maxDistance = 50;
 bool status = false;
 bool bottleFind = false;
-unsigned long timer = 0;
 unsigned long resetSide = 0;
 
 Motor motorA(motor1_A, motor1_B);
 Motor motorB(motor2_A, motor2_B);
 Car lilFord = {&motorA, &motorB};
 
+int distance();
 void blackFront();
 void blackBack();
 void flip(bool side);
-int distance();
 void startSteps(bool side);
 void debugDistance();
+void aroundTheWorld(int time);
+bool radar();
 
 void serialEvent() {
   if (Serial.available() > 0) {
@@ -54,10 +55,34 @@ void serialEvent() {
   }
 }
 void debugDistance() {
-  int mamada = distance();
-  Serial.println(mamada);
+  int bottleDistance = distance();
+  Serial.println(bottleDistance);
   delay(1000);
 }
+
+void aroundTheWorld(int time) {
+  for (int i = 1; i <= time; i++) {
+    lilFord.aroundTheWorld(1);
+    if (radar()) {
+      break;
+    }
+  }
+}
+
+bool radar() {
+  int bottleDistance = distance();
+  if (bottleDistance <= maxDistance) {
+    Serial.print("Loop\nBotella detectada a ");
+    Serial.print(bottleDistance);
+    Serial.println("cm");
+    resetSide = millis();
+    bottleFind = true;
+    lilFord.go();
+    return true;
+  }
+  return false;
+}
+
 int distance() {
   digitalWrite(trigger, LOW);
   delayMicroseconds(5);
@@ -82,68 +107,50 @@ void setup() {
 
 void loop() {
   if (status) {
-    int bottle = distance();
-    if (bottle <= maxDistance) {
-      Serial.print("Loop\nBotella detectada a ");
-      Serial.print(bottle);
-      Serial.println("cm");
-      timer = millis();
-      bottleFind = true;
+    bool checkRadar = radar();
+    if (!checkRadar && !bottleFind) {
+      aroundTheWorld(200);
       lilFord.go();
-    } else if (bottle > maxDistance && !bottleFind) {
-      lilFord.aroundTheWorld();
-      delay(50);
-      if (millis() - resetSide >= 10000) {
+      delay(300);
+      radar();
+      if (millis() - resetSide >= 5000) { //*Si girando no encuentra nada avanza
         Serial.println("Hay que seguir");
-        lilFord.stop();
-        lilFord.go();
+        lilFord.right();
         delay(200);
+        lilFord.go();
+        delay(1000);
         resetSide = millis();
       }
     }
-    while (bottleFind) {
-      lilFord.go();
-      if ((millis() - timer >= 5000) && distance() > maxDistance) {
-        Serial.println("Falsa alarma");
-        timer = millis();
+    while (bottleFind) { //*Si encuentra un objeto cercano
+      if (!checkRadar) {
+        Serial.println("No hay objeto de frente");
         bottleFind = false;
+        break;
       }
+      lilFord.go();
     }
   } else {
     debugDistance();
   }
 }
-void blackFront() {
-  if (status) {
-    lilFord.back();
-    delay(100);
-    flip(true);
-  }
-}
-void blackBack() {
-  if (status) {
-    lilFord.go();
-    delay(100);
-    flip(false);
-  }
-}
+void blackFront() { flip(true); }
+void blackBack() { flip(false); }
 
 void startSteps(bool side) {
-  int bottle = distance();
-  lilFord.go();
-  if (bottle <= maxDistance) {
-    bottleFind = true;
-  } else {
-    delay(400);
+  int bottle = radar();
+  if (!bottle) {
     if (side) {
-      lilFord.left();
-    } else {
       lilFord.right();
+      delay(300);
+      radar();
+    } else {
+      lilFord.left();
+      delay(300);
+      radar();
     }
-    delay(85);
     lilFord.go();
-    delay(150);
-    lilFord.aroundTheWorld();
+    delay(400);
   }
 }
 /*
@@ -152,36 +159,36 @@ void startSteps(bool side) {
  */
 void flip(bool side) {
   if (status) {
-    if (side) { // Linea negra de frente
+    if (side) { //*Linea negra de frente
       Serial.println("Linea enfrente");
       lilFord.back();
-      delay(200);
+      delay(300);
+      if (bottleFind) {
+        lilFord.left();
+        delay(200);
+      }
     } else {
       Serial.println("Linea detras");
       lilFord.go();
-      delay(80);
-      lilFord.aroundTheWorld();
-      delay(90);
-    }
-    if (bottleFind) {
-      bottleFind = false;
-      lilFord.spin(200);
-      lilFord.go();
-    }
-    for (int i = 0; i < 2; i++) { //! Seguir estudiando el tiempo de giro
-      int bottle = distance();
-      if (bottle <= maxDistance) {
-        bottleFind = true;
-        Serial.print("INT0\nBotella detectada a ");
-        Serial.print(bottle);
-        Serial.println("cm");
-        lilFord.go();
-        i = 2;
-      } else {
-        Serial.println("INT0\nGirando");
-        lilFord.spin(180); // Gira por 300ms
-        lilFord.stop();
+      delay(300);
+      if (bottleFind) {
+        lilFord.right();
+        delay(200);
       }
     }
+    if (!bottleFind) {
+      for (int i = 0; i < 2; i++) { //! Seguir estudiando el tiempo de giro
+        int checkRadar = radar();
+        if (checkRadar) {
+          Serial.println("INT0 Botella encontrada");
+          break;
+        } else {
+          Serial.println("INT0\nGirando");
+          lilFord.spin(200);
+        }
+      }
+      lilFord.go();
+    }
+    bottleFind = false;
   }
 }
