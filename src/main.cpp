@@ -10,7 +10,7 @@ int echo = PB11;
 
 int isBlackF = PA8;
 int isBlackB = PB12;
-int maxDistance = 50;
+int maxDistance = 80;
 bool status = false;
 bool bottleFind = false;
 unsigned long resetSide = 0;
@@ -113,12 +113,12 @@ void loop() {
       lilFord.go();
       delay(300);
       radar();
-      if (millis() - resetSide >= 5000) { //*Si girando no encuentra nada avanza
+      if (millis() - resetSide >= 1000) { //*Si girando no encuentra nada avanza
         Serial.println("Hay que seguir");
         lilFord.right();
         delay(200);
         lilFord.go();
-        delay(1000);
+        delay(1500);
         resetSide = millis();
       }
     }
@@ -142,11 +142,11 @@ void startSteps(bool side) {
   if (!bottle) {
     if (side) {
       lilFord.right();
-      delay(300);
+      delay(350);
       radar();
     } else {
       lilFord.left();
-      delay(300);
+      delay(350);
       radar();
     }
     lilFord.go();
@@ -165,7 +165,7 @@ void flip(bool side) {
       delay(300);
       if (bottleFind) {
         lilFord.left();
-        delay(200);
+        delay(250); //? 200 funciona bien
       }
     } else {
       Serial.println("Linea detras");
@@ -173,11 +173,11 @@ void flip(bool side) {
       delay(300);
       if (bottleFind) {
         lilFord.right();
-        delay(200);
+        delay(250); //? 200 funciona bien
       }
     }
     if (!bottleFind) {
-      for (int i = 0; i < 2; i++) { //! Seguir estudiando el tiempo de giro
+      for (int i = 0; i < 4; i++) { //! Seguir estudiando el tiempo de giro
         int checkRadar = radar();
         if (checkRadar) {
           Serial.println("INT0 Botella encontrada");
