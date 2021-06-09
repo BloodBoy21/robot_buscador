@@ -41,12 +41,12 @@ struct Car {
     delay(time);
   }
   void right() {
-    wheelA->stop();
-    wheelB->go();
+    wheelB->back();
+    wheelA->go();
   }
   void left() {
-    wheelB->stop();
-    wheelA->go();
+    wheelA->back();
+    wheelB->go();
   }
 };
 #endif

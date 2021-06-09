@@ -1,5 +1,9 @@
 #include <Arduino.h>
 #include <Motor.h>
+#define maxDistance 85
+#define timeToSwipe 500
+#define IRFRONTAL !digitalRead(isBlackF1) && !digitalRead(isBlackF2)
+
 int motor1_A = PB9;
 int motor1_B = PB8;
 int motor2_A = PB7;
@@ -8,26 +12,32 @@ int motor2_B = PB6;
 int trigger = PB10;
 int echo = PB11;
 
-int isBlackF = PA8;
+int isBlackF1 = PA8;
+int isBlackF2 = PA12;
 int isBlackB = PB12;
-int maxDistance = 80;
+
+int bottleDistance = 0;
 bool status = false;
 bool bottleFind = false;
 unsigned long resetSide = 0;
+unsigned long resetGo = 0;
 
 Motor motorA(motor1_A, motor1_B);
 Motor motorB(motor2_A, motor2_B);
 Car lilFord = {&motorA, &motorB};
 
 int distance();
-void blackFront();
+bool radar(int);
+void flip(bool);
 void blackBack();
-void flip(bool side);
-void startSteps(bool side);
+void blackFront();
 void debugDistance();
-void aroundTheWorld(int time);
-bool radar();
+void startSteps(bool);
+void aroundTheWorld(int, int);
 
+/**
+ * @brief Funcion para leer los comandos enviados por bluetooth
+ */
 void serialEvent() {
   if (Serial.available() > 0) {
     char opc = Serial.read();
@@ -45,44 +55,72 @@ void serialEvent() {
     case '2':
       status = true;
       Serial.println("Left");
-      startSteps(true);
+      startSteps(false);
       break;
     default:
       Serial.println("0.OFF\n1.Right\n2.Left");
-      Serial.println(distance());
       break;
     }
   }
 }
+/**
+ * @brief Funcion para debugear el sensor de distancia
+ *
+ */
 void debugDistance() {
-  int bottleDistance = distance();
+  bottleDistance = distance();
   Serial.println(bottleDistance);
   delay(1000);
 }
-
-void aroundTheWorld(int time) {
+/**
+ * @brief Funcion para girar y verificar si la botella esta cerca
+ * @param time tiempo de giro
+ * @param radarDistance Rango de medicion en cm
+ */
+void aroundTheWorld(int time, int radarDistance = maxDistance) {
   for (int i = 1; i <= time; i++) {
+    bool checkRadar = radar(radarDistance);
     lilFord.aroundTheWorld(1);
-    if (radar()) {
+    if (checkRadar) {
       break;
     }
   }
 }
-
-bool radar() {
-  int bottleDistance = distance();
+/**
+ * @brief
+ * Funcion para aplicar paramtros de reseteo cuando detecta una botella
+ * @param awayBottle Distancia a la que se encotro la botella
+ */
+void radarData(int awayBottle) {
+  Serial.print("Loop\nBotella detectada a ");
+  Serial.print(awayBottle);
+  Serial.println("cm");
+  resetSide = millis();
+  resetGo = millis();
+  bottleFind = true;
+  lilFord.go();
+}
+/**
+ * @brief Funcion para leer la distancia de la botella
+ *
+ * @param radarDistance Rango de medicion en cm
+ * @return true Si la botella esta en el rango de medicion
+ * @return false Si la botella no esta en el rango de medicion
+ */
+bool radar(int radarDistance = maxDistance) {
+  bottleDistance = distance();
   if (bottleDistance <= maxDistance) {
-    Serial.print("Loop\nBotella detectada a ");
-    Serial.print(bottleDistance);
-    Serial.println("cm");
-    resetSide = millis();
-    bottleFind = true;
-    lilFord.go();
+    radarData(bottleDistance);
     return true;
   }
   return false;
 }
-
+/**
+ * @brief Funcion para leer el sensor de distancia
+ *
+ * @return int
+ * Lectura del sensor en cm
+ */
 int distance() {
   digitalWrite(trigger, LOW);
   delayMicroseconds(5);
@@ -96,38 +134,27 @@ int distance() {
 
 void setup() {
   Serial.begin(9600);
-  pinMode(PC13, OUTPUT);
   pinMode(trigger, OUTPUT);
   pinMode(echo, INPUT);
-  pinMode(isBlackF, INPUT);
+  pinMode(isBlackF1, INPUT);
+  pinMode(isBlackF2, INPUT);
   pinMode(isBlackB, INPUT);
-  attachInterrupt(digitalPinToInterrupt(isBlackF), blackFront, RISING);
+  attachInterrupt(digitalPinToInterrupt(isBlackF1), blackFront, RISING);
+  attachInterrupt(digitalPinToInterrupt(isBlackF2), blackFront, RISING);
   attachInterrupt(digitalPinToInterrupt(isBlackB), blackBack, RISING);
 }
 
 void loop() {
   if (status) {
-    bool checkRadar = radar();
+    bool checkRadar = radar(); //*Lee la distancia
     if (!checkRadar && !bottleFind) {
-      aroundTheWorld(200);
+      bottleFind = false;
+      aroundTheWorld(150);
       lilFord.go();
       delay(300);
       radar();
-      if (millis() - resetSide >= 1000) { //*Si girando no encuentra nada avanza
-        Serial.println("Hay que seguir");
-        lilFord.right();
-        delay(200);
-        lilFord.go();
-        delay(1500);
-        resetSide = millis();
-      }
     }
-    while (bottleFind) { //*Si encuentra un objeto cercano
-      if (!checkRadar) {
-        Serial.println("No hay objeto de frente");
-        bottleFind = false;
-        break;
-      }
+    if (bottleFind) { //*Si encuentra un objeto cercano
       lilFord.go();
     }
   } else {
@@ -138,57 +165,44 @@ void blackFront() { flip(true); }
 void blackBack() { flip(false); }
 
 void startSteps(bool side) {
-  int bottle = radar();
+  int bottle = radar(100);
   if (!bottle) {
     if (side) {
       lilFord.right();
-      delay(350);
-      radar();
     } else {
       lilFord.left();
-      delay(350);
-      radar();
     }
+    delay(650);
+    lilFord.stop();
+    radar(100);
     lilFord.go();
-    delay(400);
+    delay(600);
   }
 }
-/*
- *@param bool side: Determinar que sensor fue activado
+/**
+ * @brief Funcion para cuando una linea es detectada
  *
+ * @param side Sensor que fue activado
  */
 void flip(bool side) {
   if (status) {
-    if (side) { //*Linea negra de frente
+    bottleFind = false; //*Reseteamos el estado de avanzar
+    if (side) {         //*Linea negra de frente
       Serial.println("Linea enfrente");
       lilFord.back();
-      delay(300);
-      if (bottleFind) {
-        lilFord.left();
-        delay(250); //? 200 funciona bien
-      }
+      delay(timeToSwipe);
     } else {
       Serial.println("Linea detras");
       lilFord.go();
-      delay(300);
-      if (bottleFind) {
-        lilFord.right();
-        delay(250); //? 200 funciona bien
+      delay(timeToSwipe);
+    }
+    aroundTheWorld(100);
+    for (int i = 0; i < 10; i++) { //! Seguir estudiando el tiempo de giro
+      if (radar(15)) {
+        break;
+      } else {
+        aroundTheWorld(10, 20);
       }
     }
-    if (!bottleFind) {
-      for (int i = 0; i < 4; i++) { //! Seguir estudiando el tiempo de giro
-        int checkRadar = radar();
-        if (checkRadar) {
-          Serial.println("INT0 Botella encontrada");
-          break;
-        } else {
-          Serial.println("INT0\nGirando");
-          lilFord.spin(200);
-        }
-      }
-      lilFord.go();
-    }
-    bottleFind = false;
   }
 }

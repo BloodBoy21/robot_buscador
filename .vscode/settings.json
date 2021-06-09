@@ -3,7 +3,7 @@
         "*.html": "html",
         "random": "c"
     },
-    "editor.fontFamily": "Fira Code, 'Courier New', monospace",
+    "editor.fontFamily": "'Cascadia code', 'Consolas', monospace",
     "cSpell.enableFiletypes": [
         "!cpp"
     ]
