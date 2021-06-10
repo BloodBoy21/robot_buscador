@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Motor.h>
-#define maxDistance 85
-#define timeToSwipe 500
+#define maxDistance 99
+#define timeToSwipe 400
 #define IRFRONTAL !digitalRead(isBlackF1) && !digitalRead(isBlackF2)
 
 int motor1_A = PB9;
@@ -19,7 +19,7 @@ int isBlackB = PB12;
 int bottleDistance = 0;
 bool status = false;
 bool bottleFind = false;
-unsigned long resetSide = 0;
+unsigned long resetSide = 3000;
 unsigned long resetGo = 0;
 
 Motor motorA(motor1_A, motor1_B);
@@ -117,7 +117,6 @@ bool radar(int radarDistance = maxDistance) {
 }
 /**
  * @brief Funcion para leer el sensor de distancia
- *
  * @return int
  * Lectura del sensor en cm
  */
@@ -146,16 +145,24 @@ void setup() {
 
 void loop() {
   if (status) {
-    bool checkRadar = radar(); //*Lee la distancia
-    if (!checkRadar && !bottleFind) {
+    radar(); //*Lee la distancia
+    if (!bottleFind) {
       bottleFind = false;
-      aroundTheWorld(150);
+      aroundTheWorld(130);
       lilFord.go();
-      delay(300);
+      delay(200);
+      if (millis() - resetSide >= 3000 && !bottleFind) {
+        lilFord.back();
+        delay(400);
+        resetSide = millis();
+      }
       radar();
     }
     if (bottleFind) { //*Si encuentra un objeto cercano
-      lilFord.go();
+      radar();
+      if (IRFRONTAL) {
+        lilFord.go();
+      }
     }
   } else {
     debugDistance();
@@ -196,9 +203,9 @@ void flip(bool side) {
       lilFord.go();
       delay(timeToSwipe);
     }
-    aroundTheWorld(100);
+    aroundTheWorld(150);
     for (int i = 0; i < 10; i++) { //! Seguir estudiando el tiempo de giro
-      if (radar(15)) {
+      if (radar(20)) {
         break;
       } else {
         aroundTheWorld(10, 20);
